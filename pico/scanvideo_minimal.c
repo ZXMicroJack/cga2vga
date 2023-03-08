@@ -100,7 +100,8 @@ void render_scanline(struct scanvideo_scanline_buffer *dest, int core) {
     size_t buf_length = dest->data_max;
 
     int l = scanvideo_scanline_number(dest->scanline_id);
-    uint16_t bgcolour = (uint16_t) l << 2;
+//     uint16_t bgcolour = (uint16_t) l << 2;
+    uint16_t bgcolour = (uint16_t) l;
     dest->data_used = single_color_scanline(buf, buf_length, VGA_MODE.width, bgcolour);
     dest->status = SCANLINE_OK;
 }
@@ -112,7 +113,7 @@ int main(void) {
 #endif
   stdio_init_all();
     // Re init uart now that clk_peri has changed
-    setup_default_uart();
+//     setup_default_uart();
 
     return vga_main();
 }
