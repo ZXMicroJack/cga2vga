@@ -20,3 +20,7 @@ PICO_SCANVIDEO_PIXEL_BSHIFT
 PICO_SCANVIDEO_PIXEL_[RGB][COUNT|SHIFT] defined as PICO_SCANVIDEO_DPI_PIXEL_[RGB][COUNT|SHIFT]
 
 These are defined as 5/5/5 for count and 0u/6u/11u.
+
+
+vsync -ve period 16.738ms width 64us (2 hsyncs)
+hsync -ve period 32us width 2.625us
