@@ -28,3 +28,7 @@ target_link_libraries(mandelbrot PRIVATE pico_stdlib hardware_pio hardware_dma)
 
 # must match with executable name
 pico_add_extra_outputs(mandelbrot)
+
+pico_set_binary_type(mandelbrot no_flash)
+pico_enable_stdio_usb(mandelbrot 1)
+pico_enable_stdio_uart(mandelbrot 0)

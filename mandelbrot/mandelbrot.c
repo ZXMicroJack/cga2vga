@@ -27,6 +27,7 @@
 #include "hsync.pio.h"
 #include "vsync.pio.h"
 #include "rgb.pio.h"
+#include "pico/bootrom.h"
 
 
 // VGA timing constants
@@ -45,11 +46,19 @@ unsigned char vga_data_array[TXCOUNT];
 char * address_pointer = &vga_data_array[0] ;
 
 // Give the I/O pins that we're using some names that make sense
+#if 0
 #define HSYNC     16
 #define VSYNC     17
 #define RED_PIN   18
 #define GREEN_PIN 19
 #define BLUE_PIN  20
+#else
+#define HSYNC     8
+#define VSYNC     9
+#define RED_PIN   2
+#define GREEN_PIN 4
+#define BLUE_PIN  6
+#endif
 
 // We can only produce 8 colors, so let's give them readable names
 #define BLACK   0
@@ -61,6 +70,9 @@ char * address_pointer = &vga_data_array[0] ;
 #define CYAN    6
 #define WHITE   7
 
+#define XRES 640
+#define YRES 480
+
 
 // A function for drawing a pixel with a specified color.
 // Note that because information is passed to the PIO state machines through
@@ -68,10 +80,10 @@ char * address_pointer = &vga_data_array[0] ;
 // pixels will be automatically updated on the screen.
 void drawPixel(int x, int y, char color) {
     // Range checks
-    if (x > 639) x = 639 ;
+    if (x >= XRES) x = XRES-1 ;
     if (x < 0) x = 0 ;
     if (y < 0) y = 0 ;
-    if (y > 479) y = 479 ;
+    if (y >= YRES) y = YRES-1 ;
 
     // Which pixel is it?
     int pixel = ((640 * y) + x) ;
@@ -220,7 +232,9 @@ int main() {
     /////////////////////////////////////////////////////////////////////////////////////////////////////
     uint64_t begin_time ;
     uint64_t end_time ;
-    while (true) {
+    
+    int c = 0;
+    while (c != 'q') {
 
         // x values
         for (i=0; i<640; i++) {
@@ -238,7 +252,7 @@ int main() {
 
         begin_time = time_us_64() ;
 
-        for (i=0; i<640; i++) {
+        for (i=0; i<640 && ((c = getchar_timeout_us(0)) != 'q'); i++) {
             
             for (j=0; j<480; j++) {
 
@@ -288,4 +302,5 @@ int main() {
         printf("Total time: %3.6f seconds \n", (float)(end_time - begin_time)*(1./1000000.)) ;
         printf("Total iterations: %d", total_count) ;
     }
+  reset_usb_boot(0, 0);
 }
