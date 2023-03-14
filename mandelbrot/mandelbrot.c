@@ -122,7 +122,7 @@ fix28 Zre_sq, Zim_sq ;
 int i, j, count, total_count ;
 
 fix28 x[640] ;
-fix28 y[480] ;
+fix28 y[YRES] ;
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -242,8 +242,8 @@ int main() {
         }
         
         // y values
-        for (j=0; j<480; j++) {
-            y[j] = float2fix28( 1.0f - 2.0f * (float)j/480.0f) ;
+        for (j=0; j<YRES; j++) {
+            y[j] = float2fix28( 1.0f - 2.0f * (float)j/((float)YRES)) ;
         }
 
         total_count = 0 ;
@@ -254,7 +254,7 @@ int main() {
 
         for (i=0; i<640 && ((c = getchar_timeout_us(0)) != 'q'); i++) {
             
-            for (j=0; j<480; j++) {
+            for (j=0; j<YRES; j++) {
 
                 Zre = Zre_sq = Zim = Zim_sq = 0 ;
 

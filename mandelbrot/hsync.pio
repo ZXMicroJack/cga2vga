@@ -25,13 +25,13 @@ mov x, osr              ; Copy value from OSR to x scratch register
 activeporch:
    jmp x-- activeporch  ; Remain high in active mode and front porch
 
-; SYNC PULSE
+; SYNC PULSE = H Sync = 96 = 3 * 32
 pulse:
     set pins, 0 [31]    ; Low for hsync pulse (32 cycles)
     set pins, 0 [31]    ; Low for hsync pulse (64 cycles)
     set pins, 0 [31]    ; Low for hsync pulse (96 cycles)
 
-; BACKPORCH
+; BACKPORCH = H Back Porch = 48 - 1 = 32(31) + 13(12) = 45 + 2 = 47
 backporch:
     set pins, 1 [31]    ; High for back porch (32 cycles)
     set pins, 1 [12]    ; High for back porch (45 cycles)

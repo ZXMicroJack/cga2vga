@@ -26,17 +26,20 @@ activefront:
     jmp x-- activefront           ; Remain in active mode, decrementing counter
 
 ; FRONTPORCH
-set y, 9                          ;
+set y, 9                          ; = 10 - 1 = V Front Porch - 1
 frontporch:
     wait 1 irq 0                  ;
     jmp y-- frontporch            ;
 
 ; SYNC PULSE
-set pins, 0                       ; Set pin low
-wait 1 irq 0                      ; Wait for one line
-wait 1 irq 0                      ; Wait for a second line
+;set pins, 0                       ; Set pin low
 
-; BACKPORCH
+  set y,1 side 0                   ; = 2 - 1 = V Sync - 1 
+syncloop:
+  wait 1 irq 0                      ; Wait for one line
+  jmp y-- syncloop
+
+; BACKPORCH                       ; 33 - 2 = V Back porch - 2
 set y, 31                         ; First part of back porch into y scratch register (and delays a cycle)
 ;set pins, 1                      ; Raise high for back porch (delaying a set cycle) - REPLACED WITH SIDESET
 backporch:
