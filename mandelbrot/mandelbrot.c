@@ -47,6 +47,7 @@
 // Note that this array is automatically initialized to all 0's (black)
 unsigned char vga_data_array[TXCOUNT];
 char * address_pointer = &vga_data_array[0] ;
+#define BUFFER_SPAN 320
 
 // Give the I/O pins that we're using some names that make sense
 #if 0
@@ -164,24 +165,68 @@ void cgah_isr() {
   hints++;
 }
 
-#define SCANPOINTS 200
+#define XOFFSET 300
+#define SCANPOINTS (XOFFSET+1150)
+#define SKIP  4
 
+uint cga_dma_chan = 2;
 uint32_t scanline[SCANPOINTS];
+// uint8_t scanline[SCANPOINTS];
+uint dmas = 0;
+
+void dma_irq() {
+//   int p = hints * 640;
+//   for (int i=0; i<SCANPOINTS; i++) {
+//     vga_data_array[p+i] = scanline[i]>>26;
+//   }
+  dma_channel_set_write_addr(cga_dma_chan, scanline, true);
+  dmas ++;
+}
+
+static int firsttime_setup = 1;
 
 void cga_get_scanline(PIO pio, uint scanline_sm) {
   uint dma_chan = 2;
-  dma_channel_config c = dma_channel_get_default_config(dma_chan);
-  channel_config_set_read_increment(&c, false);
-  channel_config_set_write_increment(&c, true);
-  channel_config_set_dreq(&c, pio_get_dreq(pio, scanline_sm, false));
+  if (dma_channel_is_busy(dma_chan)) return;
+  
+  if (firsttime_setup) {
+    dma_channel_config c = dma_channel_get_default_config(dma_chan);
+//     channel_config_set_transfer_data_size(&c, DMA_SIZE_8);
+    channel_config_set_read_increment(&c, false);
+    channel_config_set_write_increment(&c, true);
+    channel_config_set_dreq(&c, pio_get_dreq(pio, scanline_sm, false));
 
-  dma_channel_configure(dma_chan, &c,
-    scanline, // Destination pointer
-    &pio->rxf[scanline_sm], // Source pointer
-    SCANPOINTS, // Number of transfers
-    true// Start immediately
-  );
-  dma_channel_wait_for_finish_blocking(dma_chan);
+    pio_sm_clear_fifos(pio, scanline_sm);
+    
+    dma_channel_configure(dma_chan, &c,
+      scanline, // Destination pointer
+      &pio->rxf[scanline_sm], // Source pointer
+      SCANPOINTS, // Number of transfers
+      true// Start immediately
+    );
+    firsttime_setup = 0;
+  } else {
+    pio_sm_clear_fifos(pio, scanline_sm);
+    dma_channel_set_write_addr(cga_dma_chan, scanline, true);
+  }
+  
+  if (dma_channel_is_busy(dma_chan)) {
+    dma_channel_wait_for_finish_blocking(dma_chan);
+  }
+}
+
+void handle_scanline() {
+  gpio_put(PICO_DEFAULT_LED_PIN, 1);
+  cga_get_scanline(pio1, scanline_sm);
+  gpio_put(PICO_DEFAULT_LED_PIN, 0);
+  int p = hints * BUFFER_SPAN;
+  if (p < sizeof vga_data_array) {
+    int j = 0;
+    for (int i=XOFFSET; i<SCANPOINTS && j<BUFFER_SPAN; i+=SKIP) {
+      j++;
+      vga_data_array[p++] = scanline[i]>>26; (scanline[i]>>26)|((scanline[i+1]>>23) & 7);
+    }
+  }
 }
 
 void cga_init() {
@@ -203,8 +248,30 @@ void cga_init() {
     cgah_program_init(pio, cgah_sm, cgah_offset, 17);
     pio_set_irq0_source_enabled(pio, pis_interrupt1, true);
 #endif
+
     pio_sm_put_blocking(pio, cgain_sm, SCANPOINTS);
     scanline_sm = cgain_sm;
+
+#if 0
+    dma_channel_set_irq0_enabled(cga_dma_chan, true);
+    irq_set_exclusive_handler(DMA_IRQ_0, dma_irq);
+    irq_set_enabled(DMA_IRQ_0, true);
+
+    dma_channel_config c = dma_channel_get_default_config(cga_dma_chan);
+    channel_config_set_read_increment(&c, false);
+    channel_config_set_write_increment(&c, true);
+    channel_config_set_dreq(&c, pio_get_dreq(pio, scanline_sm, false));
+
+    dma_channel_configure(cga_dma_chan, &c,
+      scanline, // Destination pointer
+      &pio->rxf[scanline_sm], // Source pointer
+      SCANPOINTS, // Number of transfers
+      true// Start immediately
+    );
+#endif    
+      
+//     dma_channel_wait_for_finish_blocking(dma_chan);
+    
 }
 
 int main() {
@@ -212,7 +279,8 @@ int main() {
     // Initialize stdio
     stdio_init_all();
 
-    cga_init();
+    gpio_init(PICO_DEFAULT_LED_PIN);
+    gpio_set_dir(PICO_DEFAULT_LED_PIN, GPIO_OUT);
     
     // Choose which PIO instance to use (there are two instances, each with 4 state machines)
     PIO pio = pio0;
@@ -309,6 +377,9 @@ int main() {
     // of that array.
     dma_start_channel_mask((1u << rgb_chan_0)) ;
 
+    cga_init();
+    
+
 
     /////////////////////////////////////////////////////////////////////////////////////////////////////
     // ===================================== Mandelbrot =================================================
@@ -396,15 +467,10 @@ int main() {
         }
 #endif
 #if 1
-        cga_get_scanline(pio1, scanline_sm);
-        int p = hints * 640;
-        for (int i=0; i<SCANPOINTS; i++) {
-          vga_data_array[p+i] = scanline[i]>>26;
-        }
-        vga_data_array[p+i] = 0xf;
-//         printf ("vints = %d hlinecount = %d hints = %d\n", vints, hlinecount, hints);
+        handle_scanline();
+#endif
+//         printf ("vints = %d hlinecount = %d hints = %d dmas = %d\n", vints, hlinecount, hints, dmas);
 //         sleep_ms(1000);
-#endif        
     }
   reset_usb_boot(0, 0);
 }
