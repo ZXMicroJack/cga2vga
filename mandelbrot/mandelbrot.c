@@ -165,12 +165,16 @@ void cgah_isr() {
   hints++;
 }
 
-#define XOFFSET 300
-#define SCANPOINTS (XOFFSET+1150)
+#define XOFFSET 197
+#define SCANPOINTS 1300
+// #define SCANPOINTS 1425
 #define SKIP  4
+#define NBUFFS    2
 
 uint cga_dma_chan = 2;
-uint32_t scanline[SCANPOINTS];
+uint8_t curr_buff = 0;
+
+uint32_t scanline[NBUFFS][SCANPOINTS];
 // uint8_t scanline[SCANPOINTS];
 uint dmas = 0;
 
@@ -184,6 +188,19 @@ void dma_irq() {
 }
 
 static int firsttime_setup = 1;
+
+void handle_scanline(int buff) {
+  int p = hints * 2 * BUFFER_SPAN;
+  if (p < sizeof vga_data_array) {
+    int j = 0;
+    for (int i=XOFFSET; i<SCANPOINTS && j<BUFFER_SPAN; i+=SKIP) {
+      j++;
+      vga_data_array[p+j] = (scanline[buff][i]>>26)|((scanline[buff][i+1]>>23) & 7);
+      vga_data_array[p+j+BUFFER_SPAN] = (scanline[buff][i]>>26)|((scanline[buff][i+1]>>23) & 7);
+    }
+  }
+}
+
 
 void cga_get_scanline(PIO pio, uint scanline_sm) {
   uint dma_chan = 2;
@@ -199,7 +216,7 @@ void cga_get_scanline(PIO pio, uint scanline_sm) {
     pio_sm_clear_fifos(pio, scanline_sm);
     
     dma_channel_configure(dma_chan, &c,
-      scanline, // Destination pointer
+      scanline[curr_buff], // Destination pointer
       &pio->rxf[scanline_sm], // Source pointer
       SCANPOINTS, // Number of transfers
       true// Start immediately
@@ -207,25 +224,13 @@ void cga_get_scanline(PIO pio, uint scanline_sm) {
     firsttime_setup = 0;
   } else {
     pio_sm_clear_fifos(pio, scanline_sm);
-    dma_channel_set_write_addr(cga_dma_chan, scanline, true);
+    dma_channel_set_write_addr(cga_dma_chan, scanline[curr_buff], true);
   }
   
   if (dma_channel_is_busy(dma_chan)) {
+    curr_buff = curr_buff ? 0 : 1;
+    handle_scanline(curr_buff);
     dma_channel_wait_for_finish_blocking(dma_chan);
-  }
-}
-
-void handle_scanline() {
-  gpio_put(PICO_DEFAULT_LED_PIN, 1);
-  cga_get_scanline(pio1, scanline_sm);
-  gpio_put(PICO_DEFAULT_LED_PIN, 0);
-  int p = hints * BUFFER_SPAN;
-  if (p < sizeof vga_data_array) {
-    int j = 0;
-    for (int i=XOFFSET; i<SCANPOINTS && j<BUFFER_SPAN; i+=SKIP) {
-      j++;
-      vga_data_array[p++] = scanline[i]>>26; (scanline[i]>>26)|((scanline[i+1]>>23) & 7);
-    }
   }
 }
 
@@ -466,8 +471,9 @@ int main() {
           printf("\n");
         }
 #endif
+      cga_get_scanline(pio1, scanline_sm);
 #if 1
-        handle_scanline();
+//         handle_scanline();
 #endif
 //         printf ("vints = %d hlinecount = %d hints = %d dmas = %d\n", vints, hlinecount, hints, dmas);
 //         sleep_ms(1000);

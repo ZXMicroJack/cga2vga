@@ -20,13 +20,12 @@
   pull block              ; Pull from FIFO to OSR (only happens once)
 .wrap_target            ; Program wraps to here
 
-; ACTIVE + FRONTPORCH
   mov x, osr              ; Copy value from OSR to x scratch register
 
   ; wait for horizonal sync
   wait 1 gpio 17;
   wait 0 gpio 17;
-
+ 
 readloop:
   in pins,5;
   push;
@@ -52,6 +51,7 @@ static inline void cgain_program_init(PIO pio, uint sm, uint offset, uint pin) {
     //sm_config_set_clkdiv(&c, 8.730159839 / 2.0) ; // 125MHz / 14.31818MHz = 8.730159839
 //    sm_config_set_clkdiv(&c, 125.0/24.0); // 125MHz / 14.31818MHz = 8.730159839
 //    sm_config_set_clkdiv(&c, 5.526) ; // 125MHz / 14.31818MHz = 8.730159839
+    sm_config_set_clkdiv(&c, 1.736);
 
     // Set this pin's GPIO function (connect PIO to the pad)
     for (int i=0; i<5; i++) {
