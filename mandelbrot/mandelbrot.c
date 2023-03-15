@@ -165,10 +165,10 @@ void cgah_isr() {
   hints++;
 }
 
-#define XOFFSET 197
-#define SCANPOINTS 1300
+#define XOFFSET 122
+#define SCANPOINTS 762
 // #define SCANPOINTS 1425
-#define SKIP  4
+#define SKIP  2
 #define NBUFFS    2
 
 uint cga_dma_chan = 2;
