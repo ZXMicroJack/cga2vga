@@ -165,8 +165,8 @@ void cgah_isr() {
   hints++;
 }
 
-#define XOFFSET 122
-#define SCANPOINTS 762
+#define XOFFSET 112
+#define SCANPOINTS 752
 // #define SCANPOINTS 1425
 #define SKIP  2
 #define NBUFFS    2
