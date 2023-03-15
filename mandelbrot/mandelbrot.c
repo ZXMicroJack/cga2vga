@@ -27,6 +27,9 @@
 #include "hsync.pio.h"
 #include "vsync.pio.h"
 #include "rgb.pio.h"
+
+#include "cgain.pio.h"
+
 #include "pico/bootrom.h"
 
 
@@ -126,11 +129,91 @@ fix28 y[YRES] ;
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
+
+uint32_t vints = 0;
+uint64_t vlastirq = 0;
+uint64_t vlastcurr = 0;
+uint32_t hints = 0;
+uint32_t hlinecount = 0;
+
+uint scanline_sm;
+
+void cga_callback(uint gpio, uint32_t events) {
+    if (gpio == 16) {
+      if (events & 0x04) {
+//         rts_level = 0;
+      } else if (events & 0x08) {
+        vints++;
+        vlastirq = vlastcurr;
+        vlastcurr = time_us_64();
+        hlinecount = hints;
+        hints = 0;
+      }
+    }
+    if (gpio == 17) {
+      if (events & 0x04) {
+//         rts_level = 0;
+      } else if (events & 0x08) {
+        hints++;
+      }
+    }
+
+}
+
+void cgah_isr() {
+  hints++;
+}
+
+#define SCANPOINTS 200
+
+uint32_t scanline[SCANPOINTS];
+
+void cga_get_scanline(PIO pio, uint scanline_sm) {
+  uint dma_chan = 2;
+  dma_channel_config c = dma_channel_get_default_config(dma_chan);
+  channel_config_set_read_increment(&c, false);
+  channel_config_set_write_increment(&c, true);
+  channel_config_set_dreq(&c, pio_get_dreq(pio, scanline_sm, false));
+
+  dma_channel_configure(dma_chan, &c,
+    scanline, // Destination pointer
+    &pio->rxf[scanline_sm], // Source pointer
+    SCANPOINTS, // Number of transfers
+    true// Start immediately
+  );
+  dma_channel_wait_for_finish_blocking(dma_chan);
+}
+
+void cga_init() {
+    PIO pio = pio1;
+//     gpio_set_irq_callback(cga_callback);
+    gpio_set_irq_enabled_with_callback(16, GPIO_IRQ_EDGE_RISE | GPIO_IRQ_EDGE_FALL, true, cga_callback);
+    gpio_set_irq_enabled(16, GPIO_IRQ_EDGE_RISE | GPIO_IRQ_EDGE_FALL, true);
+    gpio_set_irq_enabled(17, GPIO_IRQ_EDGE_RISE | GPIO_IRQ_EDGE_FALL, true);
+    
+#if 1
+    uint cgain_offset = pio_add_program(pio, &cgain_program);
+    uint cgain_sm = 0;
+
+    cgain_program_init(pio, cgain_sm, cgain_offset, 18);
+#endif
+#if 0
+    uint cgah_offset = pio_add_program(pio, &cgah_program);
+    uint cgah_sm = 1;
+    cgah_program_init(pio, cgah_sm, cgah_offset, 17);
+    pio_set_irq0_source_enabled(pio, pis_interrupt1, true);
+#endif
+    pio_sm_put_blocking(pio, cgain_sm, SCANPOINTS);
+    scanline_sm = cgain_sm;
+}
+
 int main() {
 
     // Initialize stdio
     stdio_init_all();
 
+    cga_init();
+    
     // Choose which PIO instance to use (there are two instances, each with 4 state machines)
     PIO pio = pio0;
 
@@ -234,8 +317,9 @@ int main() {
     uint64_t end_time ;
     
     int c = 0;
-    while (c != 'q') {
-
+    while ((c = getchar_timeout_us(0)) != 'q') {
+#if 0
+      
         // x values
         for (i=0; i<640; i++) {
             x[i] = float2fix28(-2.0f + 3.0f * (float)i/640.0f) ;
@@ -301,6 +385,26 @@ int main() {
         end_time = time_us_64() ;
         printf("Total time: %3.6f seconds \n", (float)(end_time - begin_time)*(1./1000000.)) ;
         printf("Total iterations: %d", total_count) ;
+#endif
+#if 0
+        if (c = 's') {
+          cga_get_scanline(pio1, scanline_sm);
+          for (int i=0; i<SCANPOINTS; i++) {
+            printf("%d ", scanline[i]);
+          }
+          printf("\n");
+        }
+#endif
+#if 1
+        cga_get_scanline(pio1, scanline_sm);
+        int p = hints * 640;
+        for (int i=0; i<SCANPOINTS; i++) {
+          vga_data_array[p+i] = scanline[i]>>26;
+        }
+        vga_data_array[p+i] = 0xf;
+//         printf ("vints = %d hlinecount = %d hints = %d\n", vints, hlinecount, hints);
+//         sleep_ms(1000);
+#endif        
     }
   reset_usb_boot(0, 0);
 }

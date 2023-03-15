@@ -1,0 +1,44 @@
+;
+; Hunter Adams (vha3@cornell.edu)
+; HSync generation for VGA driver
+
+
+; Program name
+.program cgah
+
+  wait 1 gpio 17;
+  wait 0 gpio 17;
+  irq 0;
+  
+.wrap
+
+
+% c-sdk {
+static inline void cgah_program_init(PIO pio, uint sm, uint offset, uint pin) {
+
+    // creates state machine configuration object c, sets
+    // to default configurations. I believe this function is auto-generated
+    // and gets a name of <program name>_program_get_default_config
+    // Yes, page 40 of SDK guide
+    pio_sm_config c = cgah_program_get_default_config(offset);
+
+    // Map the state machine's SET pin group to one pin, namely the `pin`
+    // parameter to this function.
+    sm_config_set_in_pins(&c, pin);
+
+    // Set clock division (div by 5 for 25 MHz state machine)
+    //sm_config_set_clkdiv(&c, 8.730159839) ; // 125MHz / 14.31818MHz = 8.730159839
+
+    // Set this pin's GPIO function (connect PIO to the pad)
+    pio_gpio_init(pio, pin);
+    
+    // Set the pin direction to output at the PIO
+    //pio_sm_set_consecutive_pindirs(pio, sm, pin, 1, true);
+
+    // Load our configuration, and jump to the start of the program
+    pio_sm_init(pio, sm, offset, &c);
+
+    // Set the state machine running (commented out so can be synchronized w/ vsync)
+    pio_sm_set_enabled(pio, sm, true);
+}
+%}
