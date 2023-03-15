@@ -195,8 +195,11 @@ void handle_scanline(int buff) {
     int j = 0;
     for (int i=XOFFSET; i<SCANPOINTS && j<BUFFER_SPAN; i+=SKIP) {
       j++;
-      vga_data_array[p+j] = (scanline[buff][i]>>26)|((scanline[buff][i+1]>>23) & 7);
-      vga_data_array[p+j+BUFFER_SPAN] = (scanline[buff][i]>>26)|((scanline[buff][i+1]>>23) & 7);
+      uint8_t pix0 = scanline[buff][i]>>28;
+      uint8_t pix1 = scanline[buff][i+1]>>28;
+      
+      vga_data_array[p+j] = (pix1 << 4) | pix0;
+      vga_data_array[p+j+BUFFER_SPAN] = (pix1 << 4) | pix0;
     }
   }
 }

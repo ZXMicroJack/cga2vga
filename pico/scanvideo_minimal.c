@@ -88,6 +88,22 @@ int32_t single_color_scanline(uint32_t *buf, size_t buf_length, int width, uint3
 
     assert(width >= MIN_COLOR_RUN);
     
+    uint16_t *data = (uint16_t *)buf;
+    *data++ = COMPOSABLE_RAW_RUN;
+    *data++ = PICO_SCANVIDEO_PIXEL_FROM_RGB8(255,0,0);
+    *data++ = 315;
+    
+    for (int i=0; i<315; i++) {
+      *data++ = i < 80 ? PICO_SCANVIDEO_PIXEL_FROM_RGB8(255,0,0) :
+                i < 160 ? PICO_SCANVIDEO_PIXEL_FROM_RGB8(0,255,0) :
+                i < 240 ? PICO_SCANVIDEO_PIXEL_FROM_RGB8(0,0,255) : 
+                  PICO_SCANVIDEO_PIXEL_FROM_RGB8(0,0,0);
+    }
+    *data++ = COMPOSABLE_EOL_ALIGN;
+    *data++ = 0;
+    return 180;
+    
+    
 #if 0
     for (int i=0; i<(width-1); i++) {
       buf[i] = COMPOSABLE_RAW_1P | (((i >> 4)&0xffff) << 16);
