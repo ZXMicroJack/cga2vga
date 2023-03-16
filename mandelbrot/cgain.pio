@@ -28,6 +28,8 @@
  
 readloop:
   in pins,5;
+  nop
+  nop
   push;
   jmp x-- readloop;
   
@@ -51,7 +53,9 @@ static inline void cgain_program_init(PIO pio, uint sm, uint offset, uint pin) {
     //sm_config_set_clkdiv(&c, 8.730159839 / 2.0) ; // 125MHz / 14.31818MHz = 8.730159839
 //    sm_config_set_clkdiv(&c, 125.0/24.0); // 125MHz / 14.31818MHz = 8.730159839
 //    sm_config_set_clkdiv(&c, 5.526) ; // 125MHz / 14.31818MHz = 8.730159839
-    sm_config_set_clkdiv(&c, 2.9366059832242);
+//    sm_config_set_clkdiv(&c, 2.9366059832242);
+    //sm_config_set_clkdiv(&c, 2.91005291);
+    sm_config_set_clkdiv(&c, 8.741258741 / 5.0); // (125 * 11 / 157.5) / 3
 
     // Set this pin's GPIO function (connect PIO to the pad)
     for (int i=0; i<5; i++) {
