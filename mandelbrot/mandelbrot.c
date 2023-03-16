@@ -195,10 +195,13 @@ void handle_scanline(int buff) {
     int j = 0;
     for (int i=XOFFSET; i<SCANPOINTS && j<BUFFER_SPAN; i+=SKIP) {
       j++;
-      uint8_t pix0 = (scanline[buff][i]>>28) & 0xf;
-      uint8_t pix1 = (scanline[buff][i+1]>>28) & 0xf;
-      vga_data_array[p+j] = (pix1 << 4) | pix0;
-      vga_data_array[p+j+BUFFER_SPAN] = (pix1 << 4) | pix0;
+//       uint8_t pix0 = ((scanline[buff][i]>>5) | (scanline[buff][i])) & 0xf;
+//       uint8_t pix1 = ((scanline[buff][i+1]<<1) | (scanline[buff][i+1] << 4)) & 0xf0;
+      uint8_t pix = (scanline[buff][i+1] << 4) | (scanline[buff][i] & 0xf);
+      vga_data_array[p+j] = pix;
+      vga_data_array[p+j+BUFFER_SPAN] = pix;
+//       vga_data_array[p+j] = (pix1 << 4) | pix0;
+//       vga_data_array[p+j+BUFFER_SPAN] = (pix1 << 4) | pix0;
     }
   }
 }
@@ -256,7 +259,7 @@ void cga_init() {
     pio_set_irq0_source_enabled(pio, pis_interrupt1, true);
 #endif
 
-    pio_sm_put_blocking(pio, cgain_sm, SCANPOINTS);
+    pio_sm_put_blocking(pio, cgain_sm, SCANPOINTS / 2);
     scanline_sm = cgain_sm;
 
 #if 0
