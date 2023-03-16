@@ -1,0 +1,87 @@
+;
+; Hunter Adams (vha3@cornell.edu)
+; HSync generation for VGA driver
+
+
+; Program name
+.program mdain
+
+; frontporch: 16 clocks (0.64us at 25MHz)
+; sync pulse: 96 clocks (3.84us at 25MHz)
+; back porch: 48 clocks (1.92us at 25MHz)
+; active for: 640 clcks (25.6us at 25MHz)
+;
+; High for 704 cycles (28.16us at 25MHz)
+; Low  for 96  cycles (3.84us at 25MHz)
+; Total period of 800 cycles (32us at 25MHz)
+;
+
+
+  pull block              ; Pull from FIFO to OSR (only happens once)
+.wrap_target            ; Program wraps to here
+
+  mov x, osr              ; Copy value from OSR to x scratch register
+
+  ; wait for horizonal sync - inverted for mda?
+  wait 1 gpio 17;
+  wait 0 gpio 17;
+ 
+readloop:
+  in pins,2 [5];
+  in null,30;
+  push;
+  
+  in pins,2 [5];
+  in null,30;
+  push;
+
+  in pins,2 [5];
+  in null,30;
+  push;
+
+  in pins,2 [5];
+  in null,30;
+  push;
+  
+  jmp x-- readloop
+  
+.wrap
+
+
+% c-sdk {
+#define SAMPLES 4
+static inline void mdain_program_init(PIO pio, uint sm, uint offset, uint pin) {
+
+    // creates state machine configuration object c, sets
+    // to default configurations. I believe this function is auto-generated
+    // and gets a name of <program name>_program_get_default_config
+    // Yes, page 40 of SDK guide
+    pio_sm_config c = mdain_program_get_default_config(offset);
+
+    // Map the state machine's SET pin group to one pin, namely the `pin`
+    // parameter to this function.
+    sm_config_set_in_pins(&c, pin);
+
+    // Set clock division (div by 5 for 25 MHz state machine)
+    //sm_config_set_clkdiv(&c, 8.730159839 / 2.0) ; // 125MHz / 14.31818MHz = 8.730159839
+//    sm_config_set_clkdiv(&c, 125.0/24.0); // 125MHz / 14.31818MHz = 8.730159839
+//    sm_config_set_clkdiv(&c, 5.526) ; // 125MHz / 14.31818MHz = 8.730159839
+//    sm_config_set_clkdiv(&c, 2.9366059832242);
+    //sm_config_set_clkdiv(&c, 2.91005291);
+    //sm_config_set_clkdiv(&c, 8.741258741 / 5.0); // (125 * 11 / 157.5) / 3
+
+    // Set this pin's GPIO function (connect PIO to the pad)
+    for (int i=0; i<5; i++) {
+      pio_gpio_init(pio, pin+i);
+    }
+    
+    // Set the pin direction to output at the PIO
+    //pio_sm_set_consecutive_pindirs(pio, sm, pin, 1, true);
+
+    // Load our configuration, and jump to the start of the program
+    pio_sm_init(pio, sm, offset, &c);
+
+    // Set the state machine running (commented out so can be synchronized w/ vsync)
+    pio_sm_set_enabled(pio, sm, true);
+}
+%}
