@@ -190,18 +190,20 @@ void dma_irq() {
 static int firsttime_setup = 1;
 
 void handle_scanline(int buff) {
-  int p = hints * 2 * BUFFER_SPAN;
-  if (p < sizeof vga_data_array) {
-    int j = 0;
-    for (int i=XOFFSET; i<SCANPOINTS && j<BUFFER_SPAN; i+=SKIP) {
-      j++;
-//       uint8_t pix0 = ((scanline[buff][i]>>5) | (scanline[buff][i])) & 0xf;
-//       uint8_t pix1 = ((scanline[buff][i+1]<<1) | (scanline[buff][i+1] << 4)) & 0xf0;
-      uint8_t pix = (scanline[buff][i+1] << 4) | (scanline[buff][i] & 0xf);
-      vga_data_array[p+j] = pix;
-      vga_data_array[p+j+BUFFER_SPAN] = pix;
-//       vga_data_array[p+j] = (pix1 << 4) | pix0;
-//       vga_data_array[p+j+BUFFER_SPAN] = (pix1 << 4) | pix0;
+  if (hints > 20) {
+    int p = (hints - 20) * 2 * BUFFER_SPAN;
+    if (p < sizeof vga_data_array) {
+      int j = 0;
+      for (int i=XOFFSET; i<SCANPOINTS && j<BUFFER_SPAN; i+=SKIP) {
+        j++;
+  //       uint8_t pix0 = ((scanline[buff][i]>>5) | (scanline[buff][i])) & 0xf;
+  //       uint8_t pix1 = ((scanline[buff][i+1]<<1) | (scanline[buff][i+1] << 4)) & 0xf0;
+        uint8_t pix = (scanline[buff][i+1] << 4) | (scanline[buff][i] & 0xf);
+        vga_data_array[p+j] = pix;
+        vga_data_array[p+j+BUFFER_SPAN] = pix;
+  //       vga_data_array[p+j] = (pix1 << 4) | pix0;
+  //       vga_data_array[p+j+BUFFER_SPAN] = (pix1 << 4) | pix0;
+      }
     }
   }
 }
