@@ -8,6 +8,7 @@ fi
 mp=/media/`whoami`/RPI-RP2
 
 if [ "$1" == "run" ]; then
+	echo q > /dev/ttyACM0
 	while [ ! -e ${mp} ]; do
 		sleep 1
 	done

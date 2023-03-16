@@ -27,26 +27,33 @@
   wait 0 gpio 17;
  
 readloop:
-  nop
-  nop
-  in pins,5;
-  nop
-  nop
+  nop[1];
+  in pins,5[3];
   in null,27;
   push;
   
-  nop
-  nop
-  in pins,5;
-  nop
+  nop[2];
+  in pins,5[3];
   in null,27;
   push;
+
+  nop[1];
+  in pins,5[3];
+  in null,27;
+  push;
+
+  nop[2];
+  in pins,5[3];
+  in null,27;
+  push;
+  
   jmp x-- readloop
   
 .wrap
 
 
 % c-sdk {
+#define SAMPLES 4
 static inline void cgain_program_init(PIO pio, uint sm, uint offset, uint pin) {
 
     // creates state machine configuration object c, sets

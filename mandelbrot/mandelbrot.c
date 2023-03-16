@@ -234,8 +234,10 @@ void cga_get_scanline(PIO pio, uint scanline_sm) {
   
   if (dma_channel_is_busy(dma_chan)) {
     curr_buff = curr_buff ? 0 : 1;
+    gpio_put(PICO_DEFAULT_LED_PIN, 1);
     handle_scanline(curr_buff);
     dma_channel_wait_for_finish_blocking(dma_chan);
+    gpio_put(PICO_DEFAULT_LED_PIN, 0);
   }
 }
 
@@ -259,7 +261,7 @@ void cga_init() {
     pio_set_irq0_source_enabled(pio, pis_interrupt1, true);
 #endif
 
-    pio_sm_put_blocking(pio, cgain_sm, SCANPOINTS / 2);
+    pio_sm_put_blocking(pio, cgain_sm, SCANPOINTS / SAMPLES);
     scanline_sm = cgain_sm;
 
 #if 0
