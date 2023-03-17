@@ -196,16 +196,17 @@ static int firsttime_setup = 1;
 const uint8_t rgbm[] = {0x0, 0x0, 0x7, 0xf};
 
 void handle_scanline_mda(int buff) {
-  if (hints > 20) {
-    int p = (hints - 20) * 2 * BUFFER_SPAN;
-    if (p < sizeof vga_data_array) {
-      int j = 0;
-      for (int i=XOFFSET; i<SCANPOINTS && j<BUFFER_SPAN; i+=SKIP) {
-        uint8_t pix = (rgbm[scanline[buff][i+1] & 3] << 4) | rgbm[scanline[buff][i] & 3];
-        vga_data_array[p+j] = pix;
-        vga_data_array[p+j+BUFFER_SPAN] = pix;
-        j++;
-      }
+  int p = (hints + 50) * BUFFER_SPAN;
+  if (p < sizeof vga_data_array) {
+    uint32_t *in = &scanline[buff][15];
+    uint32_t *end = in + SCANPOINTS;
+    uint8_t *o1 = &vga_data_array[p];
+    uint8_t pix;
+    
+    for (int j=0; j<BUFFER_SPAN && in < end; j++) {
+      pix = rgbm[in[1]]<< 4 | rgbm[in[0]];
+      *o1++ = pix;
+      in += 2;
     }
   }
 }
@@ -254,6 +255,7 @@ void get_scanline(PIO pio, uint scanline_sm) {
   if (dma_channel_is_busy(dma_chan)) {
     curr_buff = curr_buff ? 0 : 1;
     gpio_put(PICO_DEFAULT_LED_PIN, 1);
+
     if (cga_mode) handle_scanline(curr_buff);
     else handle_scanline_mda(curr_buff);
     dma_channel_wait_for_finish_blocking(dma_chan);
