@@ -23,9 +23,11 @@
   mov x, osr              ; Copy value from OSR to x scratch register
 
   ; wait for horizonal sync
-  wait 1 gpio 17;
-  wait 0 gpio 17;
- 
+;  wait 1 gpio 17;
+;  wait 0 gpio 17;
+  wait 1 gpio 14;
+  wait 0 gpio 14;
+
 readloop:
   nop[1];
   in pins,5[3];

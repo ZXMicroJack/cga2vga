@@ -1,9 +1,9 @@
 
 
 if [ "$1" == "clean" ]; then
-docker run -ti --rm -v`pwd`:/work --name lpthdpico  picobuild4 bash -c "cd /work/mandelbrot; make clean"
+docker run -ti --rm -v`pwd`:/work --name lpthdpico  picobuild5 bash -c "cd /work/mandelbrot; make clean"
 else
-docker run -ti --rm -v`pwd`:/work --name lpthdpico  picobuild4 bash -c "cd /work/mandelbrot; cmake .; make"
+docker run -ti --rm -v`pwd`:/work --name lpthdpico  picobuild5 bash -c "cd /work/mandelbrot; cmake .; make"
 fi
 mp=/media/`whoami`/RPI-RP2
 

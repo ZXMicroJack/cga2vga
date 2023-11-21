@@ -51,7 +51,20 @@ char * address_pointer = &vga_data_array[0] ;
 #define BUFFER_SPAN 320
 
 // Give the I/O pins that we're using some names that make sense
-#if 0
+// #define CGA_V     16
+// #define CGA_H     17
+
+#define CGA_V     15
+#define CGA_H     14
+
+#define CGA_R     9
+#define CGA_G     10
+#define CGA_B     11
+#define CGA_I     12
+#define CGA_M     13
+
+
+#if 1
 #define HSYNC     16
 #define VSYNC     17
 #define RED_PIN   18
@@ -140,9 +153,10 @@ uint32_t hlinecount = 0;
 
 uint scanline_sm;
 
+
 int first_sync = 1;
 void cga_callback(uint gpio, uint32_t events) {
-    if (gpio == 16) {
+    if (gpio == CGA_V) {
       if (events & 0x04) {
 //         rts_level = 0;
       } else if (events & 0x08) {
@@ -154,7 +168,7 @@ void cga_callback(uint gpio, uint32_t events) {
         hints = 0;
       }
     }
-    if (gpio == 17) {
+    if (gpio == CGA_H) {
       if (events & 0x04) {
 //         rts_level = 0;
       } else if (events & 0x08) {
@@ -194,6 +208,7 @@ void dma_irq() {
 
 static int firsttime_setup = 1;
 const uint8_t rgbm[] = {0x0, 0x0, 0x7, 0xf};
+
 
 void handle_scanline_mda(int buff) {
   int p = (hints + 50) * BUFFER_SPAN;
@@ -255,19 +270,21 @@ void get_scanline(PIO pio, uint scanline_sm) {
   if (dma_channel_is_busy(dma_chan)) {
     curr_buff = curr_buff ? 0 : 1;
     gpio_put(PICO_DEFAULT_LED_PIN, 1);
-
     if (cga_mode) handle_scanline(curr_buff);
     else handle_scanline_mda(curr_buff);
-    dma_channel_wait_for_finish_blocking(dma_chan);
     gpio_put(PICO_DEFAULT_LED_PIN, 0);
+    dma_channel_wait_for_finish_blocking(dma_chan);
   }
 }
 
 void hv_init() {
   gpio_set_irq_enabled_with_callback(16, GPIO_IRQ_EDGE_RISE | GPIO_IRQ_EDGE_FALL, true, cga_callback);
-  gpio_set_irq_enabled(16, GPIO_IRQ_EDGE_RISE | GPIO_IRQ_EDGE_FALL, true);
-  gpio_set_irq_enabled(17, GPIO_IRQ_EDGE_RISE | GPIO_IRQ_EDGE_FALL, true);
+  gpio_set_irq_enabled(CGA_V, GPIO_IRQ_EDGE_RISE | GPIO_IRQ_EDGE_FALL, true);
+  gpio_set_irq_enabled(CGA_H, GPIO_IRQ_EDGE_RISE | GPIO_IRQ_EDGE_FALL, true);
 }
+
+// #define CGA_R   18
+// #define CGA_I   21
 
 void cga_init() {
   PIO pio = pio1;
@@ -275,7 +292,7 @@ void cga_init() {
   uint cgain_offset = pio_add_program(pio, &cgain_program);
   uint cgain_sm = 0;
 
-  cgain_program_init(pio, cgain_sm, cgain_offset, 18);
+  cgain_program_init(pio, cgain_sm, cgain_offset, CGA_R);
 
   pio_sm_put_blocking(pio, cgain_sm, SCANPOINTS / SAMPLES);
   scanline_sm = cgain_sm;
@@ -288,7 +305,7 @@ void mda_init() {
   uint mdain_offset = pio_add_program(pio, &mdain_program);
   uint mdain_sm = 0;
 
-  mdain_program_init(pio, mdain_sm, mdain_offset, 21);
+  mdain_program_init(pio, mdain_sm, mdain_offset, CGA_I);
 
   pio_sm_put_blocking(pio, mdain_sm, SCANPOINTS / SAMPLES);
   scanline_sm = mdain_sm;
@@ -398,6 +415,9 @@ int main() {
   // Initialize stdio
   stdio_init_all();
 
+  for (int i=0; i<100; i++) printf("hello\n");
+
+
   gpio_init(PICO_DEFAULT_LED_PIN);
   gpio_set_dir(PICO_DEFAULT_LED_PIN, GPIO_OUT);
 
@@ -424,7 +444,7 @@ int main() {
       get_scanline(pio1, scanline_sm);
     }
     
-#if 0
+#if 1
     uint64_t now = time_us_64();
     if ((now - last_report) > 1000000) {
       printf ("vints = %d hlinecount = %d hints = %d cga_mode = %d\n", vints, hlinecount, hints, cga_mode);
